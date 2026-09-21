@@ -4,64 +4,74 @@ export default {
   async fetch(request) {
 
     const url = new URL(request.url);
-    let path = url.pathname;
 
-    path = path.replace(/^\/+/, "");
-
+    let file = url.pathname.split("/").pop();
 
     // ==========================
-    // PLAYLIST M3U8
+    // PLAYLIST
     // ==========================
-    if (path === "" || path === "index.m3u8") {
 
-      const response = await fetch(R2_BASE + "index.m3u8");
+    if (file === "index.m3u8" || file === "") {
 
-      if (!response.ok) {
-        return new Response("Playlist no encontrada", {
-          status: 404
+      const playlist = await fetch(R2_BASE + "index.m3u8");
+
+      if (!playlist.ok) {
+        return new Response("No existe playlist", {
+          status:404
         });
       }
 
-      let playlist = await response.text();
+
+      let text = await playlist.text();
 
 
-      let lines = playlist.split("\n");
-
-      let segmentLines = [];
-
-      for (let line of lines) {
-        if (line.trim().endsWith(".ts")) {
-          segmentLines.push(line.trim());
-        }
-      }
+      // Convertimos segmentos relativos a URL del worker
+      const workerURL = url.origin;
 
 
-      // cuantos segmentos dejamos atrás
-      const delaySegments = 5;
-
-
-      // si hay suficientes segmentos quitamos los últimos 5
-      const allowed = segmentLines.slice(
-        0,
-        Math.max(0, segmentLines.length - delaySegments)
+      text = text.replace(
+        /\.ts/g,
+        ".ts"
       );
 
 
-      let output = [];
-      let index = 0;
+      let lines = text.split("\n");
 
 
-      for (let line of lines) {
+      let segments = lines.filter(
+        x => x.endsWith(".ts")
+      );
 
-        if (line.trim().endsWith(".ts")) {
 
-          if (index < allowed.length) {
-            output.push(line);
+      // retraso de reproducción
+      const delay = 5;
+
+
+      const keep = segments.slice(
+        0,
+        Math.max(0, segments.length - delay)
+      );
+
+
+      let count = 0;
+      let output=[];
+
+
+      for(let line of lines){
+
+        if(line.endsWith(".ts")){
+
+          if(count < keep.length){
+
+            output.push(
+              workerURL + "/" + line.trim()
+            );
+
           }
 
-          index++;
+          count++;
 
-        } else {
+        }else{
 
           output.push(line);
 
@@ -70,15 +80,20 @@ export default {
       }
 
 
-      return new Response(output.join("\n"), {
+      return new Response(
+        output.join("\n"),
+        {
+          headers:{
+            "Content-Type":
+            "application/x-mpegURL",
+            
+            "Access-Control-Allow-Origin":"*",
 
-        headers:{
-          "Content-Type":"application/x-mpegURL; charset=utf-8",
-          "Access-Control-Allow-Origin":"*",
-          "Cache-Control":"no-cache, no-store, must-revalidate"
+            "Cache-Control":
+            "no-cache"
+          }
         }
-
-      });
+      );
 
     }
 
@@ -88,43 +103,45 @@ export default {
     // SEGMENTOS TS
     // ==========================
 
-    if (path.endsWith(".ts")) {
+    if(file.endsWith(".ts")){
 
 
-      const file = path.split("/").pop();
+      const segment = await fetch(
+        R2_BASE + file
+      );
 
 
-      const segment = await fetch(R2_BASE + file);
+      if(!segment.ok){
 
-
-      if (!segment.ok) {
-
-        return new Response("Segmento no encontrado", {
-          status:404
-        });
+        return new Response(
+          "Segmento no encontrado",
+          {
+            status:404
+          }
+        );
 
       }
 
 
-      return new Response(segment.body, {
+      return new Response(
+        segment.body,
+        {
+          headers:{
+            "Content-Type":
+            "video/mp2t",
 
-        headers:{
-          "Content-Type":"video/mp2t",
-          "Access-Control-Allow-Origin":"*",
-          "Cache-Control":"public,max-age=30"
+            "Access-Control-Allow-Origin":"*",
+
+            "Cache-Control":
+            "public,max-age=20"
+          }
         }
-
-      });
-
+      );
 
     }
 
 
-
-    return new Response("Not Found", {
-      status:404
-    });
-
+    return new Response("OK");
 
   }
 };
