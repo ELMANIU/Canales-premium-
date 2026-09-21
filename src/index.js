@@ -6,78 +6,125 @@ export default {
     const url = new URL(request.url);
     let path = url.pathname;
 
-    // quitar /
     path = path.replace(/^\/+/, "");
 
-    // playlist
+
+    // ==========================
+    // PLAYLIST M3U8
+    // ==========================
     if (path === "" || path === "index.m3u8") {
 
-      const res = await fetch(R2_BASE + "index.m3u8");
-      let text = await res.text();
+      const response = await fetch(R2_BASE + "index.m3u8");
 
-      // retrasar 5 segmentos
-      let lines = text.split("\n");
+      if (!response.ok) {
+        return new Response("Playlist no encontrada", {
+          status: 404
+        });
+      }
 
-      let segments = [];
-      let output = [];
+      let playlist = await response.text();
+
+
+      let lines = playlist.split("\n");
+
+      let segmentLines = [];
 
       for (let line of lines) {
-        if (line.endsWith(".ts")) {
-          segments.push(line);
+        if (line.trim().endsWith(".ts")) {
+          segmentLines.push(line.trim());
         }
       }
 
-      let skip = Math.max(0, segments.length - 5);
 
-      let count = 0;
+      // cuantos segmentos dejamos atrás
+      const delaySegments = 5;
+
+
+      // si hay suficientes segmentos quitamos los últimos 5
+      const allowed = segmentLines.slice(
+        0,
+        Math.max(0, segmentLines.length - delaySegments)
+      );
+
+
+      let output = [];
+      let index = 0;
+
 
       for (let line of lines) {
 
-        if (line.endsWith(".ts")) {
+        if (line.trim().endsWith(".ts")) {
 
-          if (count < skip) {
-            count++;
-            continue;
+          if (index < allowed.length) {
+            output.push(line);
           }
 
-          output.push(line);
+          index++;
 
         } else {
+
           output.push(line);
+
         }
 
       }
 
+
       return new Response(output.join("\n"), {
+
         headers:{
-          "Content-Type":"application/x-mpegURL",
+          "Content-Type":"application/x-mpegURL; charset=utf-8",
           "Access-Control-Allow-Origin":"*",
-          "Cache-Control":"no-cache"
+          "Cache-Control":"no-cache, no-store, must-revalidate"
         }
+
       });
 
     }
 
 
-    // segmentos TS
+
+    // ==========================
+    // SEGMENTOS TS
+    // ==========================
+
     if (path.endsWith(".ts")) {
+
 
       const file = path.split("/").pop();
 
-      const res = await fetch(R2_BASE + file);
 
-      return new Response(res.body,{
+      const segment = await fetch(R2_BASE + file);
+
+
+      if (!segment.ok) {
+
+        return new Response("Segmento no encontrado", {
+          status:404
+        });
+
+      }
+
+
+      return new Response(segment.body, {
+
         headers:{
           "Content-Type":"video/mp2t",
           "Access-Control-Allow-Origin":"*",
-          "Cache-Control":"public,max-age=60"
+          "Cache-Control":"public,max-age=30"
         }
+
       });
+
 
     }
 
 
-    return new Response("Not found",{status:404});
+
+    return new Response("Not Found", {
+      status:404
+    });
+
 
   }
 };
