@@ -1,28 +1,27 @@
 export default {
   async fetch(request) {
 
-    const url = "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/index.m3u8";
+    const base = "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/";
 
-    const response = await fetch(url);
+    const playlist = await fetch(base + "index.m3u8");
 
-    let playlist = await response.text();
+    let text = await playlist.text();
 
-    // Solo modificar playlists m3u8
-    if (playlist.includes("#EXTM3U")) {
+    // Reescribir segmentos .ts
+    text = text.replace(
+      /^(?!#)(.*\.ts.*)$/gm,
+      line => {
+        if (line.startsWith("http")) return line;
+        return base + line;
+      }
+    );
 
-      playlist = playlist.replace(
-        "#EXTM3U",
-        "#EXTM3U\n#EXT-X-START:TIME-OFFSET=-30"
-      );
-
-    }
-
-    return new Response(playlist, {
+    return new Response(text, {
       headers: {
         "Content-Type": "application/vnd.apple.mpegurl",
-        "Cache-Control": "no-cache, no-store, must-revalidate"
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache"
       }
     });
-
   }
-};
+}
