@@ -1,42 +1,54 @@
-const R2_URL = "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/";
+const R2_BASE = "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/";
 
 export default {
   async fetch(request) {
 
-    const url = R2_URL + "index.m3u8";
+    const playlistURL = R2_BASE + "index.m3u8";
 
-    const res = await fetch(url);
+    const response = await fetch(playlistURL);
 
-    if (!res.ok) {
-      return new Response("Playlist no encontrada", {status:404});
+    if (!response.ok) {
+      return new Response("No se pudo cargar playlist", {
+        status: 404
+      });
     }
 
-    let playlist = await res.text();
+    let m3u8 = await response.text();
 
-    const lines = playlist.split("\n");
+    let lines = m3u8.split("\n");
 
-    const salida = lines.map(line => {
+    let output = [];
 
-      // deja intactas las etiquetas HLS
+    for (let line of lines) {
+
+      // Mantener etiquetas HLS
       if (line.startsWith("#")) {
-        return line;
+        output.push(line);
+        continue;
       }
 
-      // convierte segmentos relativos a URL completa
-      if (line.trim().endsWith(".ts")) {
-        return R2_URL + line.trim();
+      line = line.trim();
+
+      // Convertir segmentos .ts a URL absoluta
+      if (line.endsWith(".ts")) {
+        output.push(R2_BASE + line);
+      }
+      else if (line !== "") {
+        output.push(line);
       }
 
-      return line;
+    }
 
-    }).join("\n");
+    let finalPlaylist = output.join("\n");
 
 
-    return new Response(salida, {
-      headers:{
-        "Content-Type":"application/vnd.apple.mpegurl",
-        "Access-Control-Allow-Origin":"*",
-        "Cache-Control":"no-cache, no-store"
+    return new Response(finalPlaylist, {
+      headers: {
+        "Content-Type": "application/vnd.apple.mpegurl",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
       }
     });
 
