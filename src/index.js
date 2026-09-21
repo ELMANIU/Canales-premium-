@@ -1,11 +1,10 @@
+const R2_PLAYLIST =
+"https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/index.m3u8";
+
 const R2_BASE =
 "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/";
 
-const PLAYLIST =
-R2_BASE + "index.m3u8";
-
-
-const DELAY_SEGMENTS = 5;
+const DELAY = 5;
 
 
 export default {
@@ -13,143 +12,66 @@ export default {
 async fetch(request) {
 
 
-  const url = new URL(request.url);
+const res = await fetch(R2_PLAYLIST);
 
+let playlist = await res.text();
 
-  if (url.pathname.endsWith("index.m3u8")) {
 
+let lines = playlist.trim().split("\n");
 
-    const response = await fetch(PLAYLIST);
+let segmentPositions = [];
 
 
-    let text = await response.text();
+// localizar segmentos .ts
 
+for(let i=0;i<lines.length;i++){
 
-    let lines = text.split("\n");
+ if(lines[i].endsWith(".ts")){
 
+   segmentPositions.push(i);
 
-    let header = [];
-    let segments = [];
+ }
 
+}
 
-    for(let i = 0; i < lines.length; i++){
 
+// quitar últimos 5 segmentos
 
-      if(lines[i].startsWith("#EXTINF")){
+let remove = segmentPositions.slice(-DELAY);
 
 
-        segments.push([
-          lines[i],
-          lines[i+1]
-        ]);
+let filtered = lines.filter((line,index)=>{
 
+ return !remove.includes(index);
 
-        i++;
+});
 
 
-      } else {
 
+// convertir rutas ts relativas a absolutas
 
-        header.push(lines[i]);
+filtered = filtered.map(line=>{
 
+ if(line.endsWith(".ts")){
 
-      }
+   return R2_BASE + line;
 
-    }
+ }
 
+ return line;
 
+});
 
-    // retrasar 5 segmentos
 
-    if(segments.length > DELAY_SEGMENTS){
-
-      segments =
-      segments.slice(
-        0,
-        segments.length - DELAY_SEGMENTS
-      );
-
-    }
-
-
-
-    let output = [];
-
-
-
-    // conservar encabezados
-
-    for(const h of header){
-
-      if(h.trim() !== ""){
-
-        output.push(h);
-
-      }
-
-    }
-
-
-
-    // agregar segmentos con URL completa R2
-
-    for(const seg of segments){
-
-
-      output.push(seg[0]);
-
-
-      let file = seg[1];
-
-
-      if(file && file.trim() !== ""){
-
-
-        output.push(
-          R2_BASE + file
-        );
-
-
-      }
-
-
-    }
-
-
-
-    return new Response(
-      output.join("\n"),
-      {
-        headers:{
-
-          "Content-Type":
-          "audio/x-mpegurl",
-
-          "Access-Control-Allow-Origin":
-          "*",
-
-          "Cache-Control":
-          "no-cache, no-store, must-revalidate"
-
-        }
-
-      }
-
-    );
-
-
-  }
-
-
-
-  return new Response(
-    "Fenix HLS Worker OK",
-    {
-      headers:{
-        "Content-Type":"text/plain"
-      }
-    }
-  );
+return new Response(
+ filtered.join("\n"),
+ {
+ headers:{
+  "Content-Type":"audio/x-mpegurl",
+  "Access-Control-Allow-Origin":"*",
+  "Cache-Control":"no-cache"
+ }
+});
 
 
 }
