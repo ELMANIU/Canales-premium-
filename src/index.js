@@ -1,47 +1,37 @@
-const PLAYLIST =
+const R2_URL =
 "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev/canales/tnthd/index.m3u8";
 
-
 export default {
-async fetch(){
+ async fetch(request){
 
-const res = await fetch(PLAYLIST);
+   const url = new URL(request.url);
 
-let text = await res.text();
+   let target = R2_URL;
 
-let lines = text.split("\n");
+   if(url.pathname.endsWith(".ts")){
+      target =
+      "https://pub-31c3df763d1f4f2bbd2602595581aa82.r2.dev" 
+      + url.pathname;
+   }
 
-let segments = [];
 
-let output = [];
+   const response = await fetch(target,{
+     headers:{
+       "User-Agent":"Roku"
+     }
+   });
 
-for(let line of lines){
 
-if(line.startsWith("#EXTINF")){
-segments.push(line);
+   return new Response(response.body,{
+     status:response.status,
+     headers:{
+       "Content-Type":
+       response.headers.get("Content-Type") ||
+       "application/vnd.apple.mpegurl",
+       "Access-Control-Allow-Origin":"*",
+       "Cache-Control":"no-cache"
+     }
+   });
+
+ }
 }
-else{
-output.push(line);
-}
-
-}
-
-
-// quitar últimos 5 segmentos
-let keep = segments.slice(0, segments.length - 5);
-
-
-let final = output.join("\n") + "\n" + keep.join("\n");
-
-
-return new Response(final,{
-headers:{
-"Content-Type":"application/vnd.apple.mpegurl",
-"Access-Control-Allow-Origin":"*",
-"Cache-Control":"no-cache"
-}
-});
-
-}
-
-};
