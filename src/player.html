@@ -1,27 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
-<title>Fénix TV Player</title>
+
+<title>Fénix TV</title>
 
 <style>
+
 body{
-    margin:0;
-    background:#000;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+margin:0;
+background:#000;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 video{
-    width:100%;
-    max-width:1200px;
-    height:auto;
+width:100%;
+max-width:1200px;
+height:auto;
 }
+
 </style>
 
 </head>
+
 
 <body>
 
@@ -34,57 +39,89 @@ video{
 
 <script>
 
+
 const video = document.getElementById("video");
 
 
-const stream = "https://c218dd5e-canales-premium.elmanuchale.workers.dev/index.m3u8";
+// ==========================
+// LEER CANAL DE LA URL
+// ==========================
+
+const params = new URLSearchParams(window.location.search);
+
+const canal = params.get("canal");
 
 
-if (Hls.isSupported()) {
+// Worker
+
+const worker =
+"https://canales-premiu.elmanuchale.workers.dev";
 
 
-    const hls = new Hls({
+// Crear URL dinámica
 
-        // entrar 5 segmentos atrás
-        liveSyncDurationCount:5,
-
-        // evita irse al último segmento
-        liveMaxLatencyDurationCount:10,
-
-        enableWorker:true,
-
-        lowLatencyMode:false
-
-    });
+const stream =
+`${worker}/${canal}/index.m3u8`;
 
 
-    hls.loadSource(stream);
 
-    hls.attachMedia(video);
-
-
-    hls.on(Hls.Events.MANIFEST_PARSED, function(){
-
-        video.play();
-
-    });
+console.log("Reproduciendo:", stream);
 
 
-    hls.on(Hls.Events.ERROR,function(event,data){
 
-        console.log(data);
+if(Hls.isSupported()){
 
-    });
+
+const hls = new Hls({
+
+liveSyncDurationCount:5,
+
+liveMaxLatencyDurationCount:10,
+
+enableWorker:true,
+
+lowLatencyMode:false
+
+});
+
+
+hls.loadSource(stream);
+
+hls.attachMedia(video);
+
+
+
+hls.on(
+Hls.Events.MANIFEST_PARSED,
+()=>{
+
+video.play();
+
+});
+
+
+hls.on(
+Hls.Events.ERROR,
+(event,data)=>{
+
+console.log(data);
+
+});
 
 
 }
 
 
-else if(video.canPlayType('application/vnd.apple.mpegurl')){
+else if(
+video.canPlayType(
+"application/vnd.apple.mpegurl"
+)
+){
 
-    video.src = stream;
+video.src=stream;
 
 }
+
 
 </script>
 
