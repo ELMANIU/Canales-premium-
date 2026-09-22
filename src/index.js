@@ -247,7 +247,7 @@ if(Hls.isSupported()){
 const hls =
 new Hls({
 
-liveSyncDurationCount:3
+liveSyncDurationCount:2
 
 });
 
@@ -396,7 +396,7 @@ segmentos.push(line.trim());
 
 // retraso
 
-const retraso = 5;
+const retraso = 2;
 
 
 
