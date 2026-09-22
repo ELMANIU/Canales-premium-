@@ -16,6 +16,162 @@ const path = url.pathname.replace(/^\/+/,"");
 // PLAYER DINÁMICO
 // ==========================
 
+// ==========================
+// PANEL ADMIN
+// ==========================
+
+const ADMIN_KEY = "FENIX2026";
+
+
+if(path === "admin"){
+
+
+const key = url.searchParams.get("key");
+
+
+if(key !== ADMIN_KEY){
+
+return new Response(
+"Acceso denegado",
+{
+status:403,
+headers:{
+"Content-Type":"text/plain"
+}
+}
+);
+
+}
+
+
+
+const html = `
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Fénix TV Admin</title>
+
+
+<style>
+
+body{
+
+background:#111;
+color:white;
+font-family:Arial;
+padding:30px;
+
+}
+
+
+.card{
+
+background:#222;
+padding:20px;
+border-radius:10px;
+max-width:600px;
+
+}
+
+
+input{
+
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:5px;
+
+}
+
+
+button{
+
+padding:12px;
+background:#e50914;
+color:white;
+border:0;
+border-radius:5px;
+cursor:pointer;
+
+}
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div class="card">
+
+<h1>🔥 Fénix TV Admin</h1>
+
+
+<h3>Crear canal</h3>
+
+
+<label>Nombre del canal</label>
+
+<input placeholder="warner">
+
+
+<label>URL M3U8</label>
+
+<input placeholder="https://fuente.m3u8">
+
+
+<button>
+CREAR CANAL
+</button>
+
+
+<hr>
+
+
+<h3>Estado</h3>
+
+<p>
+Aquí después mostraremos:
+</p>
+
+<ul>
+
+<li>FFmpeg</li>
+
+<li>R2</li>
+
+<li>Worker</li>
+
+</ul>
+
+
+</div>
+
+
+</body>
+
+</html>
+
+`;
+
+
+
+return new Response(html,{
+headers:{
+"Content-Type":"text/html;charset=UTF-8"
+}
+});
+
+
+}
 
 if(path === "" || path === "player.html"){
 
